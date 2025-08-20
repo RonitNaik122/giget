@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: gitload
+Version: 0.1.0
+Summary: A simple tool to download GitHub folders like gitload https://github.com/RonitNaik122/GitLoad
+Home-page: https://github.com/RonitNaik122/GitLoad
+Author: Ronit Naik
+License: MIT
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests
+Dynamic: author
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: summary

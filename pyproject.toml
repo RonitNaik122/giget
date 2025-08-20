@@ -1,3 +1,21 @@
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitload"
+version = "0.1.0"
+description = "Download a GitHub folder from the command line"
+readme = "README.md"
+authors = [
+  { name = "Ronit Naik", email = "ronitnaik122@gmail.com" }
+]
+license = { file = "LICENSE" } 
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.setuptools]
+packages = ["gitload"]
+
+[tool.setuptools.packages.find]
+where = ["."]
