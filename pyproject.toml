@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "giget"
-version = "0.1.0"
+version = "0.2.1"
 description = "A simple tool to download files/folders from GitHub repositories"
 authors = [
   { name = "Ronit Naik", email = "ronitnaik122@gmail.com" }
@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 [project.scripts]
-gitload = "gitload.cli:main"
+giget = "giget.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/RonitNaik122/GitLoad"
@@ -36,7 +36,7 @@ Issues = "https://github.com/RonitNaik122/GitLoad/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["gitload*"]
+include = ["giget*"]
 
 [tool.setuptools]
 license-files = []
