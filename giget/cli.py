@@ -1,65 +1,126 @@
-import sys
+import sys, re
 from .core import download_github_dir
 from .help import show_help
+from .list import list_github_folder   # <-- import the list function
+
+def validate_github_url(url: str) -> bool:
+    """
+    Validate GitHub repository or subdirectory URL using regex.
+    Examples of valid:
+      - https://github.com/user/repo
+      - https://github.com/user/repo/tree/branch/path/to/dir
+    """
+    pattern = re.compile(
+        r"^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/tree\/[^\/]+(?:\/.*)?)?$"
+    )
+    return bool(pattern.match(url))
+
 
 def main():
     if len(sys.argv) < 2:
         show_help()
         sys.exit(1)
 
+    args = sys.argv[1:]
+
+    # -------------------------------
+    # Handle commands with no URL
+    # -------------------------------
+    if args[0] in ("--help", "-h"):
+        show_help()
+        sys.exit(0)
+
+    if args[0] in ("--version", "-v", "-V"):
+        print(f"giget 0.4.1 built by Ronit Naik")
+        sys.exit(0)
+
+    # -------------------------------
+    # Handle special command: list
+    # -------------------------------
+    if args[0] == "list":
+        if len(args) < 2:
+            print("❌ Missing GitHub URL for list command.")
+            sys.exit(1)
+
+        url = args[1].rstrip("/")
+        if not validate_github_url(url):
+            print("❌ Invalid GitHub URL format:", url)
+            sys.exit(1)
+
+        try:
+            list_github_folder(url)
+            sys.exit(0)
+        except Exception as e:
+            print("❌ Error:", e)
+            sys.exit(1)
+
+    # -------------------------------
+    # Default: Download mode
+    # -------------------------------
     flat = False
     save_dir = "."
+    force = False
+    rename = False
+    url = None
 
-    # size of argv in 3 or more -- command has flags
-    if sys.argv[1].startswith(("-","--")):
-        # size of argv is 3 or 2 if -h or --help 
-        if sys.argv[1] == "-nf":
+    i = 0
+    while i < len(args):
+        arg = args[i]
+
+        if arg == "-nf":
             flat = True
-        elif (sys.argv[1] == "--help") or (sys.argv[1] == "-h"):
-            show_help()
+        elif arg == "--force":
+            force = True
+        elif arg == "--rename":
+            rename = True
+        elif arg == "-o":
+            if i + 1 >= len(args):
+                print("❌ Missing output directory after -o")
+                sys.exit(1)
+            save_dir = args[i + 1]
+            i += 1
+        elif arg.startswith("-"):
+            print("❌ Unknown flag:", arg)
             sys.exit(1)
         else:
-            print("Unknown flag:", sys.argv[1])
-            sys.exit(1)
-        if len(sys.argv) == 2:
-            print("No GitHub url found\n\ngiget -nf <github-url>")
-            sys.exit(1)
-        url = sys.argv[2].rstrip("/")
-
-        # checking if -o flag is present -- if yes then size of argv should be 5
-        if len(sys.argv) >= 4:
-            
-            if sys.argv[3] == "-o":
-                if len(sys.argv) == 4:
-                    print("Missing output directory after -o")
-                    sys.exit(1)
-                save_dir = sys.argv[4]
-            else:
-                print("Unknown flag:", sys.argv[3])
+            if url is not None:
+                print("❌ Multiple URLs detected. Only one is allowed.")
                 sys.exit(1)
-    
-    # size of argv is 2 -- a normal CLI command
-    else:
-        url = sys.argv[1].rstrip("/")
-        # checking if -o is present
-        if len(sys.argv) > 2:
-            if sys.argv[2] == "-o":
-                if len(sys.argv) == 3:
-                    print("Missing output directory after -o")
-                    sys.exit(1)
-                save_dir = sys.argv[3]
-            else:
-                print("Unknown flag:", sys.argv[3])
-                sys.exit(1)
+            url = arg.rstrip("/")
+        i += 1
 
-    try:
-        # Example: https://github.com/jasmcaus/opencv-course/tree/master/Resources/Photos
-        parts = url.split("github.com/")[1].split("/")
-        owner, repo, tree, branch, *path = parts
-        folder_path = "/".join(path)
-    except Exception:
-        print("****| Invalid GitHub URL format. |****")
+    if url is None:
+        print("❌ Missing GitHub URL.\n\nUsage: giget [flags] <github_url>")
         sys.exit(1)
 
-    download_github_dir(owner, repo, folder_path, branch, save_dir=save_dir, flat=flat)
-    print("✅ Download complete!")
+    if not validate_github_url(url):
+        print("❌ Invalid GitHub URL format:", url)
+        sys.exit(1)
+
+    try:
+        parts = url.split("github.com/")[1].split("/")
+        if "tree" in parts:
+            owner, repo, _, branch, *path = parts
+        else:
+            owner, repo, *path = parts
+            branch = "master"
+        folder_path = "/".join(path)
+    except Exception:
+        print("❌ Invalid GitHub URL structure.")
+        sys.exit(1)
+
+    try:
+        download_github_dir(
+            owner,
+            repo,
+            folder_path,
+            branch,
+            save_dir=save_dir,
+            flat=flat,
+            force=force,
+            rename=rename,
+        )
+        print("✅ Download complete!")
+    except Exception as e:
+        print("❌ Error:", e)
+        sys.exit(1)

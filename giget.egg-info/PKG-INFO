@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: giget
-Version: 0.2.8
+Version: 0.4.1
 Summary: A simple tool to download files/folders from GitHub repositories
 Author-email: Ronit Naik <ronitnaik122@gmail.com>
 License: LICENSE
