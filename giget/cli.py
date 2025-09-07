@@ -1,20 +1,72 @@
+# cli.py --> entry point
 import sys, re
-from .core import download_github_dir
+from .core import download_github_dir, download_single_file
 from .help import show_help
-from .list import list_github_folder   # <-- import the list function
+from .list import list_github_folder
+
+def parse_github_url(url: str) -> dict:
+    """
+    Parse GitHub URL and extract owner, repo, branch, path, and type.
+    
+    Returns dict with keys: owner, repo, branch, path, url_type
+    url_type can be: 'repo', 'tree' (directory), 'blob' (file)
+    """
+    # Remove trailing slash and split
+    url = url.rstrip("/")
+    
+    # Extract the path after github.com/
+    try:
+        path_part = url.split("github.com/")[1]
+        parts = path_part.split("/")
+    except (IndexError, ValueError):
+        raise ValueError("Invalid GitHub URL format")
+    
+    if len(parts) < 2:
+        raise ValueError("URL must contain owner and repository")
+    
+    owner = parts[0]
+    repo = parts[1]
+    
+    # Default values
+    branch = "main"  # GitHub's default branch is now "main"
+    path = ""
+    url_type = "repo"
+    
+    if len(parts) == 2:
+        # Just owner/repo - download entire repository
+        url_type = "repo"
+        path = ""
+    elif len(parts) >= 4 and parts[2] in ["tree", "blob"]:
+        # Format: owner/repo/tree|blob/branch/path/to/resource
+        url_type = parts[2]
+        branch = parts[3]
+        if len(parts) > 4:
+            path = "/".join(parts[4:])
+    elif len(parts) > 2:
+        # Fallback: treat remaining as path with default branch
+        path = "/".join(parts[2:])
+        url_type = "tree"  # Assume it's a directory
+    
+    return {
+        "owner": owner,
+        "repo": repo,
+        "branch": branch,
+        "path": path,
+        "url_type": url_type
+    }
 
 def validate_github_url(url: str) -> bool:
     """
-    Validate GitHub repository or subdirectory URL using regex.
+    Validate GitHub repository, subdirectory, or file URL.
     Examples of valid:
       - https://github.com/user/repo
       - https://github.com/user/repo/tree/branch/path/to/dir
+      - https://github.com/user/repo/blob/branch/path/to/file.txt
     """
     pattern = re.compile(
-        r"^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/tree\/[^\/]+(?:\/.*)?)?$"
+        r"^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/(?:tree|blob)\/[^\/]+(?:\/.*)?)?$"
     )
     return bool(pattern.match(url))
-
 
 def main():
     if len(sys.argv) < 2:
@@ -31,7 +83,7 @@ def main():
         sys.exit(0)
 
     if args[0] in ("--version", "-v", "-V"):
-        print(f"giget 0.4.1 built by Ronit Naik")
+        print(f"giget 0.4.7 built by Ronit Naik")
         sys.exit(0)
 
     # -------------------------------
@@ -98,28 +150,34 @@ def main():
         sys.exit(1)
 
     try:
-        parts = url.split("github.com/")[1].split("/")
-        if "tree" in parts:
-            owner, repo, _, branch, *path = parts
-        else:
-            owner, repo, *path = parts
-            branch = "master"
-        folder_path = "/".join(path)
-    except Exception:
-        print("❌ Invalid GitHub URL structure.")
+        # Parse the GitHub URL using the new parser
+        parsed = parse_github_url(url)
+        owner = parsed["owner"]
+        repo = parsed["repo"]
+        branch = parsed["branch"]
+        path = parsed["path"]
+        url_type = parsed["url_type"]
+        
+        print(f"📋 Parsed URL:")
+        print(f"   Owner: {owner}")
+        print(f"   Repo: {repo}")
+        print(f"   Branch: {branch}")
+        print(f"   Path: {path}")
+        print(f"   Type: {url_type}")
+        
+    except Exception as e:
+        print(f"❌ Invalid GitHub URL structure: {e}")
         sys.exit(1)
 
     try:
-        download_github_dir(
-            owner,
-            repo,
-            folder_path,
-            branch,
-            save_dir=save_dir,
-            flat=flat,
-            force=force,
-            rename=rename,
-        )
+        # Handle different URL types
+        if url_type == "blob":
+            # Single file download
+            download_single_file(owner, repo, path, branch, save_dir, force, rename)
+        else:
+            # Directory download (includes full repo)
+            download_github_dir(owner, repo, path, branch, save_dir, flat, force, rename)
+            
         print("✅ Download complete!")
     except Exception as e:
         print("❌ Error:", e)
