@@ -83,7 +83,7 @@ def main():
         sys.exit(0)
 
     if args[0] in ("--version", "-v", "-V"):
-        print(f"giget 0.4.7 built by Ronit Naik")
+        print(f"giget 0.4.18 built by Ronit Naik")
         sys.exit(0)
 
     # -------------------------------
